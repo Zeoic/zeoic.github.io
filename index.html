@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kavita Theme Combiner</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #list {
+            margin-top: 20px;
+        }
+        .css-file {
+            font-size: 16px;
+            color: #333;
+        }
+        .error {
+            color: red;
+        }
+        .css-file-item {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Kavita Theme Combiner</h1>
+    <h3> This tool is meant to combine full color themes with small feature themes, such as Aquamarin with No-Colorscape. Combining full color themes may have undesired results!</h3>
+    <div id="list"></div>
+    <button id="compile-btn" style="display: none;" onclick="compileCssFiles()">Compile Selected CSS</button>
+
+    <script>
+        const githubRepoUrl = "https://github.com/Kareadita/Themes"; // Hardcoded URL
+        let selectedFiles = [];
+
+        // Automatically run the script when the page loads
+        window.onload = function () {
+            const regex = /https:\/\/github\.com\/([^\/]+)\/([^\/]+)/;
+            const matches = githubRepoUrl.match(regex);
+
+            if (!matches) {
+                document.getElementById('list').innerHTML = '<p class="error">Invalid GitHub URL.</p>';
+                return;
+            }
+
+            const owner = matches[1];
+            const repo = matches[2];
+
+            fetchCssFiles(owner, repo);
+        };
+
+        async function fetchCssFiles(owner, repo) {
+            try {
+                const cssFiles = await getCssFiles(owner, repo);
+                if (cssFiles.length === 0) {
+                    document.getElementById('list').innerHTML = '<p>No CSS files found in this repository.</p>';
+                    return;
+                }
+
+                let html = '<h2>Themes:</h2>';
+                cssFiles.forEach(file => {
+                    // Get the immediate parent folder of the CSS file
+                    const parentFolder = file.split('/')[1]; 
+                    html += `
+                        <div class="css-file-item">
+                            <input type="checkbox" id="file-${file}" value="${file}" onclick="toggleSelection(this)">
+                            <label for="file-${file}">${parentFolder}</label>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+
+                document.getElementById('list').innerHTML = html;
+                document.getElementById('compile-btn').style.display = 'block';
+            } catch (error) {
+                document.getElementById('list').innerHTML = `<p class="error">${error.message}</p>`;
+            }
+        }
+
+        async function getCssFiles(owner, repo, path = '') {
+            const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('Error fetching repository contents');
+            }
+
+            const files = await response.json();
+            let cssFiles = [];
+
+            for (const file of files) {
+                if (file.type === 'file' && file.name.endsWith('.css')) {
+                    // If it's a CSS file, add it to the list
+                    cssFiles.push(file.path);
+                } else if (file.type === 'dir') {
+                    // If it's a directory, recursively fetch its contents
+                    const subDirCssFiles = await getCssFiles(owner, repo, file.path);
+                    cssFiles = cssFiles.concat(subDirCssFiles);
+                }
+            }
+
+            return cssFiles;
+        }
+
+        function toggleSelection(checkbox) {
+            const filePath = checkbox.value;
+            if (checkbox.checked) {
+                selectedFiles.push(filePath);
+            } else {
+                selectedFiles = selectedFiles.filter(file => file !== filePath);
+            }
+        }
+
+        async function compileCssFiles() {
+            if (selectedFiles.length === 0) {
+                alert('Please select at least one CSS file to compile.');
+                return;
+            }
+
+            let combinedCss = '';
+
+            for (const file of selectedFiles) {
+                const fileNameWithoutExtension = file.split('/').pop().replace('.css', ''); // Get file name without .css
+                const fileContent = await fetchCssContent(file);
+
+                // Replace all occurrences of .bg-<file name> with .bg-compiled
+                const modifiedContent = fileContent.replace(new RegExp(`\\.bg-${fileNameWithoutExtension}`, 'g'), '.bg-compiled');
+
+                combinedCss += `\n/* ${file} */\n${modifiedContent}\n`;
+            }
+
+            // Create a Blob with the combined CSS
+            const blob = new Blob([combinedCss], { type: 'text/css' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'compiled.css';
+            link.click();
+        }
+
+        async function fetchCssContent(filePath) {
+            const url = `https://raw.githubusercontent.com/${githubRepoUrl.split('/')[3]}/${githubRepoUrl.split('/')[4]}/main/${filePath}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Error fetching content for ${filePath}`);
+            }
+            return await response.text();
+        }
+    </script>
+</body>
+</html>

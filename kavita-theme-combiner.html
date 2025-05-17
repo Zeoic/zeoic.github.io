@@ -5,37 +5,160 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kavita Theme Combiner</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+        :root {
+            /* Light theme */
+            --light-bg: #f5f5f5;
+            --light-card: #ffffff;
+            --light-text: #333333;
+            --light-muted: #666666;
+            --light-border: #e0e0e0;
+            --light-accent: #2196f3;
+            
+            /* Dark theme */
+            --dark-bg: #1a1a1a;
+            --dark-card: #2d2d2d;
+            --dark-text: #e0e0e0;
+            --dark-muted: #959595;
+            --dark-border: #404040;
+            --dark-accent: #64b5f6;
+            
+            /* Current theme (dark) */
+            --bg: var(--dark-bg);
+            --card-bg: var(--dark-card);
+            --text-primary: var(--dark-text);
+            --text-secondary: var(--dark-muted);
+            --border-color: var(--dark-border);
+            --accent-color: #4AC694FF; /* Kavita green */
+            
+            --border-radius: 8px;
+            --shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            color: var(--accent-color);
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        h3 {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            font-weight: 400;
+        }
+
         #list {
+            display: grid;
+            gap: 12px;
             margin-top: 20px;
         }
-        .css-file {
-            font-size: 16px;
-            color: #333;
-        }
-        .error {
-            color: red;
-        }
+
         .css-file-item {
-            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+
+        .css-file-item:hover {
+            transform: translateX(4px);
+            background: #383838;
+        }
+
+        .css-file-item input[type="checkbox"] {
+            margin-right: 12px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--accent-color);
+        }
+
+        .css-file-item label {
+            font-size: 16px;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        #compile-btn {
+            display: none;
+            background-color: rgb(58, 172, 126);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 200px;
+            font-weight: 700;
+        }
+
+        #compile-btn:hover {
+            background-color: rgb(47, 139, 102);
+        }
+
+        .error {
+            color: #ff4444;
+            padding: 12px;
+            border-radius: var(--border-radius);
+            background-color: #3a1f1f;
+            margin-top: 12px;
+            border: 1px solid #ff4444;
+        }
+
+        .loading-message {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-top: 20px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
         }
     </style>
 </head>
 <body>
-    <h1>Kavita Theme Combiner</h1>
-    <h3> This tool is meant to combine a full color theme with small feature themes, such as Aquamarin with No-Colorscape. Combining multiple full color themes may have undesired results!</h3>
-    <div id="list"></div>
-    <button id="compile-btn" style="display: none;" onclick="compileCssFiles()">Compile Selected CSS</button>
+    <div class="container">
+        <h1>Kavita Theme Combiner</h1>
+        <h3>Kavita Theme Combiner is a tool that helps you create custom themes by combining base color themes with feature-specific themes. For example, you can pair the Aquamarine color theme with No-Colorscape feature theme. For best results, use one base color theme with multiple feature themes - combining multiple color themes may produce unexpected results.</h3>
+        <div id="list"></div>
+        <button id="compile-btn" onclick="compileCssFiles()">Compile Selected CSS</button>
+    </div>
 
     <script>
-        const githubRepoUrl = "https://github.com/Kareadita/Themes"; // Hardcoded URL
+        const githubRepoUrl = "https://github.com/Kareadita/Themes";
         let selectedFiles = [];
 
-        // Automatically run the script when the page loads
         window.onload = function () {
+            document.getElementById('list').innerHTML = '<p class="loading-message">Loading themes from Kavita repository...</p>';
+            
             const regex = /https:\/\/github\.com\/([^\/]+)\/([^\/]+)/;
             const matches = githubRepoUrl.match(regex);
 
@@ -60,8 +183,7 @@
 
                 let html = '<h2>Themes:</h2>';
                 cssFiles.forEach(file => {
-                    // Get the immediate parent folder of the CSS file
-                    const parentFolder = file.split('/')[1]; 
+                    const parentFolder = file.split('/')[1];
                     html += `
                         <div class="css-file-item">
                             <input type="checkbox" id="file-${file}" value="${file}" onclick="toggleSelection(this)">
@@ -69,7 +191,6 @@
                         </div>
                     `;
                 });
-                html += '</div>';
 
                 document.getElementById('list').innerHTML = html;
                 document.getElementById('compile-btn').style.display = 'block';
@@ -81,8 +202,9 @@
         async function getCssFiles(owner, repo, path = '') {
             const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
             const response = await fetch(url);
+            
             if (!response.ok) {
-                throw new Error('Error fetching repository contents');
+                throw new Error('Error fetching repository contents - Did you hit the API rate limit?');
             }
 
             const files = await response.json();
@@ -90,10 +212,8 @@
 
             for (const file of files) {
                 if (file.type === 'file' && file.name.endsWith('.css')) {
-                    // If it's a CSS file, add it to the list
                     cssFiles.push(file.path);
                 } else if (file.type === 'dir') {
-                    // If it's a directory, recursively fetch its contents
                     const subDirCssFiles = await getCssFiles(owner, repo, file.path);
                     cssFiles = cssFiles.concat(subDirCssFiles);
                 }
@@ -120,16 +240,14 @@
             let combinedCss = '';
 
             for (const file of selectedFiles) {
-                const fileNameWithoutExtension = file.split('/').pop().replace('.css', ''); // Get file name without .css
+                const fileNameWithoutExtension = file.split('/').pop().replace('.css', '');
                 const fileContent = await fetchCssContent(file);
 
-                // Replace all occurrences of .bg-<file name> with .bg-compiled
                 const modifiedContent = fileContent.replace(new RegExp(`\\.bg-${fileNameWithoutExtension}`, 'g'), '.bg-compiled');
 
                 combinedCss += `\n/* ${file} */\n${modifiedContent}\n`;
             }
 
-            // Create a Blob with the combined CSS
             const blob = new Blob([combinedCss], { type: 'text/css' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -140,6 +258,7 @@
         async function fetchCssContent(filePath) {
             const url = `https://raw.githubusercontent.com/${githubRepoUrl.split('/')[3]}/${githubRepoUrl.split('/')[4]}/main/${filePath}`;
             const response = await fetch(url);
+            
             if (!response.ok) {
                 throw new Error(`Error fetching content for ${filePath}`);
             }
